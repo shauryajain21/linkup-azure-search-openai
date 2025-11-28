@@ -433,16 +433,82 @@ Sources may include internal documents and web search results (marked as [Linkup
 
 ## Troubleshooting
 
-### Linkup not triggering
+### Azure Deployment Issues
+
+#### InsufficientQuota Error
+If you see an error like:
+```
+ERROR CODE: InvalidTemplateDeployment
+"code": "InsufficientQuota",
+"message": "Insufficient quota. Cannot create/update/move resource..."
+```
+
+This means your Azure subscription has hit quota limits for Cognitive Services or OpenAI. Try these solutions:
+
+**Option 1: Try a different Azure region**
+```bash
+azd env set AZURE_LOCATION "eastus2"
+# Other options: westus2, westeurope, northeurope, etc.
+azd up
+```
+
+**Option 2: Use existing Azure OpenAI resources**
+If you already have Azure OpenAI deployed, you can reuse it:
+```bash
+azd env set AZURE_OPENAI_RESOURCE_GROUP "your-existing-rg"
+azd env set AZURE_OPENAI_SERVICE "your-existing-openai-service"
+azd up
+```
+
+**Option 3: Check for soft-deleted resources consuming quota**
+```bash
+# List soft-deleted Cognitive Services
+az cognitiveservices account list-deleted --output table
+
+# Purge if needed (replace with your values)
+az cognitiveservices account purge --name <name> --resource-group <rg> --location <location>
+```
+
+**Option 4: Request quota increase**
+1. Go to Azure Portal → Subscriptions → Your subscription
+2. Click "Usage + quotas"
+3. Find "Cognitive Services" or "Azure OpenAI"
+4. Click "Request increase"
+
+**Option 5: Delete unused resources**
+```bash
+# List your existing cognitive services
+az cognitiveservices account list --output table
+
+# Delete any you don't need
+az cognitiveservices account delete --name <name> --resource-group <rg>
+```
+
+**Option 6: Use low-cost deployment**
+```bash
+azd env set AZURE_USE_FREE_TIER true
+azd up
+```
+
+#### Other Deployment Errors
+- Make sure you're logged in: `azd auth login`
+- Ensure you have the required permissions (Owner or Contributor role)
+- Check that your subscription is active and not expired
+
+---
+
+### Linkup Integration Issues
+
+#### Linkup not triggering
 - Check that `LINKUP_API_KEY` is set correctly
 - Restart the server after code changes
 - Check the "Linkup web search" thought step in the response
 
-### LLM not using Linkup results
+#### LLM not using Linkup results
 - Ensure you updated `chat_answer_question.prompty` (Step 10)
 - The prompt must tell the LLM to prefer web search for real-time info
 
-### Import errors
+#### Import errors
 - Run `pip install linkup-sdk` in your virtual environment
 - Regenerate requirements.txt with `pip-compile requirements.in`
 
